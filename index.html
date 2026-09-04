@@ -679,30 +679,18 @@
   </main>
 
   <script>
+        // ============================================================
+    // 1. KONFIGURASI FIREBASE LENGKAP
     // ============================================================
-    // 1. TEMPELKAN KODE DARI FIREBASE PROJECT SETTINGS DI BAWAH INI:
-    // ============================================================
-    // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBay7BT8J1boRMRZ6cmS_U_8fqYJzi8d2U",
-  authDomain: "kanji-jft-a2.firebaseapp.com",
-  projectId: "kanji-jft-a2",
-  storageBucket: "kanji-jft-a2.firebasestorage.app",
-  messagingSenderId: "1064727986642",
-  appId: "1:1064727986642:web:500b3bc8664a66c6d8c80b",
-  measurementId: "G-9ELJZ1YR9N"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyBay7BT8J1boRMRZ6cmS_U_8fqYJzi8d2U",
+      authDomain: "kanji-jft-a2.firebaseapp.com",
+      projectId: "kanji-jft-a2",
+      storageBucket: "kanji-jft-a2.firebasestorage.app",
+      messagingSenderId: "1064727986642",
+      appId: "1:1064727986642:web:500b3bc8664a66c6d8c80b",
+      measurementId: "G-9ELJZ1YR9N"
+    };
 
     // Inisialisasi Firebase
     firebase.initializeApp(firebaseConfig);
@@ -739,7 +727,6 @@ const analytics = getAnalytics(app);
       }
 
       if (!user) {
-        // Belum Login
         authGate.style.display = 'flex';
         viewLogin.style.display = 'block';
         viewPending.style.display = 'none';
@@ -748,11 +735,9 @@ const analytics = getAnalytics(app);
         return;
       }
 
-      // Pengguna sudah login dengan Google -> Dengarkan data izin secara Realtime
       const userDocRef = db.collection('users').doc(user.uid);
       unsubscribeSnapshot = userDocRef.onSnapshot(async (doc) => {
         if (!doc.exists) {
-          // Akun baru pertama kali login: daftarkan dengan status pending
           await userDocRef.set({
             email: user.email,
             nama: user.displayName || "Pengguna",
@@ -766,7 +751,6 @@ const analytics = getAnalytics(app);
         } else {
           const userData = doc.data();
           if (userData.status === 'approved') {
-            // Status Disetujui: Langsung buka aplikasi secara otomatis!
             authGate.style.display = 'none';
             appHeader.style.display = 'block';
             appMain.style.display = 'block';
@@ -776,7 +760,6 @@ const analytics = getAnalytics(app);
               init();
             }
           } else {
-            // Masih Pending
             authGate.style.display = 'flex';
             viewLogin.style.display = 'none';
             viewPending.style.display = 'block';
@@ -786,8 +769,7 @@ const analytics = getAnalytics(app);
           }
         }
       }, error => {
-        console.error("Firestore Error: ", error);
-        alert("Terjadi kendala pembacaan izin database: " + error.message);
+        alert("Kendala database: " + error.message);
       });
     });
 

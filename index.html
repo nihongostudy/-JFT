@@ -670,17 +670,14 @@
     let unsubscribeSnapshot = null;
     let isAppInited = false;
 
-    auth.getRedirectResult().catch((error) => {
-      if (error && error.code) {
-        alert("Gagal Login: " + error.message);
-      }
-    });
-
     function loginGoogle() {
       const btn = document.getElementById('btn-login');
-      if (btn) btn.innerText = "Mengalihkan...";
+      if (btn) btn.innerText = "Memproses...";
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithRedirect(provider);
+      auth.signInWithPopup(provider).catch((error) => {
+        if (btn) btn.innerText = "🔑 Masuk dengan Akun Google";
+        alert("Gagal Login: " + error.message);
+      });
     }
 
     function logoutGoogle() {

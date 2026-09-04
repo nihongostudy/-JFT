@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "kanji": "日",
+    "reading": "hi / nichi",
+    "meaning": "Matahari / Hari"
+  },
+  {
+    "id": 2,
+    "kanji": "月",
+    "reading": "tsuki / getsu",
+    "meaning": "Bulan"
+  }
+]

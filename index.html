@@ -679,7 +679,21 @@
   </main>
 
   <script>
-        // Inisialisasi Firebase
+  <script>
+    // ============================================================
+    // KONFIGURASI FIREBASE RESMI
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBay7BT8J1boRMRZ6cmS_U_8fqYJzi8d2U",
+      authDomain: "kanji-jft-a2.firebaseapp.com",
+      projectId: "kanji-jft-a2",
+      storageBucket: "kanji-jft-a2.firebasestorage.app",
+      messagingSenderId: "1064727986642",
+      appId: "1:1064727986642:web:500b3bc8664a66c6d8c80b",
+      measurementId: "G-9ELJZ1YR9N"
+    };
+
+    // Inisialisasi Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
@@ -705,6 +719,7 @@
         location.reload();
       });
     }
+
 
     // Monitoring Akun Masuk & Izin Database
     auth.onAuthStateChanged(user => {

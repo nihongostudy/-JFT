@@ -711,7 +711,8 @@
     // Fungsi login khusus Android / Mobile (tanpa pop-up)
     function loginGoogle() {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithRedirect(provider);
+          auth.signInWithRedirect(provider);
+
     }
 
     function logoutGoogle() {

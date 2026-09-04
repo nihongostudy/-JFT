@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Flashcard Kanji JFT 613 - Visual Mnemonic</title>
+
+  <!-- Firebase SDK (Compatibility Version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #4338ca;
+      --primary-soft: #eef2ff;
+      --accent-red: #b91c1c;
+      --success: #059669;
+      --success-soft: #ecfdf5;
+      --text: #0f172a;
+      --muted: #64748b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* AUTH GATE STYLE */
+    #auth-gate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .auth-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 20px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    }
+    .auth-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin: 0 auto 14px;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .top-bar {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-logo {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    nav {
+      max-width: 480px;
+      margin: 8px auto 0;
+      display: flex;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 10px;
+    }
+    nav button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 7px 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    nav button.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    main {
+      flex: 1;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 10px 14px 20px;
+    }
+    .section-tab {
+      display: none;
+    }
+    .section-tab.active {
+      display: block;
+    }
+    .filter-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .range-dropdown {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      outline: none;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .bar-bg {
+      flex: 1;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+    
+    /* 3D Flashcard */
+    .scene {
+      perspective: 1200px;
+      width: 100%;
+      min-height: 380px;
+      margin-bottom: 12px;
+    }
+    .card-box {
+      width: 100%;
+      min-height: 380px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .card-box.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .card-side {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-back {
+      transform: rotateY(180deg);
+      background: #ffffff;
+    }
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .btn-icon {
+      background: none;
+      border: none;
+      font-size: 19px;
+      cursor: pointer;
+      color: #94a3b8;
+      padding: 2px;
+    }
+    .btn-icon.active {
+      color: #f59e0b;
+    }
+    .center-content {
+      text-align: center;
+      margin: auto 0;
+      width: 100%;
+    }
+    .kanji-big {
+      font-size: 62px;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+    .reading-hira {
+      font-size: 23px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 2px;
+    }
+    .meaning-box {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--success);
+      margin-bottom: 10px;
+    }
+
+    .visual-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .visual-flow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .visual-sketch {
+      width: 52px;
+      height: 52px;
+      font-size: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      flex-shrink: 0;
+    }
+    .visual-arrow {
+      font-size: 16px;
+      color: #94a3b8;
+      font-weight: bold;
+    }
+    .visual-target {
+      min-width: 52px;
+      height: 52px;
+      padding: 0 10px;
+      font-size: 30px;
+      font-weight: 900;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      white-space: nowrap;
+    }
+    .visual-caption {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--accent-red);
+      text-align: center;
+      margin: 10px 0 3px;
+      line-height: 1.3;
+    }
+    .visual-subtext {
+      font-size: 11.5px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+      max-width: 95%;
+    }
+
+    .bottom-hint {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .btn-subgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 0;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn-sec {
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-pri {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-action {
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      padding: 8px;
+    }
+    .btn-action.mastered {
+      background: var(--success-soft);
+      border-color: #6ee7b7;
+      color: var(--success);
+      font-weight: 800;
+    }
+    .quiz-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 14px;
+      text-align: center;
+    }
+    .quiz-q-kanji {
+      font-size: 52px;
+      font-weight: 900;
+      margin: 10px 0 4px;
+    }
+    .quiz-q-reading {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    .quiz-opts {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .quiz-btn {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+    .quiz-btn.correct {
+      background: var(--success);
+      color: #fff;
+      border-color: var(--success);
+    }
+    .quiz-btn.wrong {
+      background: #dc2626;
+      color: #fff;
+      border-color: #dc2626;
+    }
+    .search-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .table-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-y: auto;
+      max-height: 65vh;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      font-weight: 700;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- GERBANG LOGIN & VALIDASI AKSES -->
+  <div id="auth-gate">
+    <div class="auth-card">
+      
+      <!-- Tampilan 1: Belum Login -->
+      <div id="view-login">
+        <div class="auth-icon" style="background:var(--primary-soft); color:var(--primary);">🔒</div>
+        <h2 style="font-size:18px; font-weight:800; margin-bottom:6px;">Akses Terbatas</h2>
+        <p style="font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:20px;">
+          Aplikasi Kanji JFT 613 memerlukan izin masuk. Silakan login untuk meminta akses dari pemilik.
+        </p>
+        <button onclick="loginGoogle()" style="width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span>🔑</span> Masuk dengan Akun Google
+        </button>
+      </div>
+
+      <!-- Tampilan 2: Pending (Menunggu Persetujuan Anda) -->
+      <div id="view-pending" style="display:none;">
+        <div class="auth-icon" style="background:#fef3c7; color:#d97706;">⏳</div>
+        <h2 style="font-size:18px; font-weight:800; margin-bottom:6px;">Menunggu Persetujuan</h2>
+        <p style="font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:14px;">
+          Permintaan Anda telah tercatat. Halaman ini akan otomatis terbuka setelah admin menyetujui akses Anda.
+        </p>
+        <div id="pending-user-display" style="font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-soft); padding:8px 10px; border-radius:8px; margin-bottom:16px; word-break:break-all;"></div>
+        <button onclick="logoutGoogle()" style="padding:8px 16px; background:#fff; color:var(--muted); border:1px solid var(--border); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+          Ganti Akun / Keluar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APLIKASI FLASHCARD (TERSEMBUNYI SECARA DEFAULT) -->
+  <header id="app-header" style="display:none;">
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-logo">漢</div>
+        <div>
+          <div class="brand-title">JFT Kanji Master</div>
+          <div class="brand-sub">613 Kosakata Visual Mnemonic</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn-icon" onclick="playAudio()" title="Suara Pengucapan">🔊</button>
+        <button class="btn-icon" onclick="logoutGoogle()" title="Keluar Akun" style="font-size:16px;">🚪</button>
+      </div>
+    </div>
+    <nav>
+      <button id="tab-flash" class="active" onclick="showTab('flash')">🎴 Flashcard</button>
+      <button id="tab-quiz" onclick="showTab('quiz')">📝 Kuis</button>
+      <button id="tab-list" onclick="showTab('list')">📋 613 Kanji</button>
+      <button id="tab-tips" onclick="showTab('tips')">💡 Tips JFT</button>
+    </nav>
+  </header>
+
+  <main id="app-main" style="display:none;">
+    <!-- TAB 1: FLASHCARD -->
+    <div id="view-flash" class="section-tab active">
+      
+      <div class="filter-box">
+        <select id="range-sel" class="range-dropdown" onchange="filterRange(this.value)">
+          <option value="all">Semua Kosakata (1 - 613)</option>
+          <option value="1-100">Bagian 1: 1 - 100 (Dasar, Hari, Waktu)</option>
+          <option value="101-200">Bagian 2: 101 - 200 (Arah, Benda, Sekolah)</option>
+          <option value="201-300">Bagian 3: 201 - 300 (Keluarga, Sifat, Kerja)</option>
+          <option value="301-400">Bagian 4: 301 - 400 (Alat, Kuil, Tempat)</option>
+          <option value="401-500">Bagian 5: 401 - 500 (Relasi, Pekerjaan, Jadwal)</option>
+          <option value="501-613">Bagian 6: 501 - 613 (Aturan, Restoran, Medis)</option>
+          <option value="unmastered">⏳ Belum Hafal</option>
+          <option value="bookmarked">⭐ Disimpan (Butuh Review)</option>
+        </select>
+        <div class="stats-row">
+          <span>Dikuasai: <b id="stat-m">0</b></span>
+          <span>Review: <b id="stat-b">0</b></span>
+          <span>Total: <b id="stat-t">613</b></span>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <span id="prog-num">1 / 613</span>
+        <div class="bar-bg">
+          <div id="prog-bar" class="bar-fill"></div>
+        </div>
+        <span id="prog-pct">0%</span>
+      </div>
+
+      <div class="scene" onclick="flipCard()">
+        <div id="card-inner" class="card-box">
+          <!-- DEPAN -->
+          <div class="card-side card-front">
+            <div class="card-head">
+              <span id="card-no-f" class="badge">No. 1</span>
+              <button class="btn-icon" id="star-btn" onclick="toggleFav(event)">★</button>
+            </div>
+            
+            <div class="center-content">
+              <div id="card-kanji-f" class="kanji-big">魚</div>
+              <p style="font-size: 12px; color: var(--muted); font-weight: 600;">Ketuk kartu untuk melihat bentuk asal & cara baca</p>
+            </div>
+
+            <div class="bottom-hint">
+              <span>👆 Ketuk untuk membalik kartu</span>
+            </div>
+          </div>
+
+          <!-- BELAKANG -->
+          <div class="card-side card-back">
+            <div class="card-head">
+              <span id="card-no-b" class="badge">No. 1</span>
+              <button class="btn-icon" onclick="playAudio(event)">🔊</button>
+            </div>
+
+            <div class="center-content">
+              <div id="card-hira" class="reading-hira">さかな</div>
+              <div id="card-arti" class="meaning-box">Ikan</div>
+
+              <!-- DIAGRAM VISUAL MNEMONIC -->
+              <div class="visual-card">
+                <div class="visual-flow">
+                  <div class="visual-sketch" id="sketch-icon">🐟</div>
+                  <div class="visual-arrow">➔</div>
+                  <div class="visual-target" id="sketch-kanji">魚</div>
+                </div>
+                <div class="visual-caption" id="sketch-caption">Ini adalah bentuk ikan.</div>
+                <div class="visual-subtext" id="sketch-desc">Kepala di atas, badan bersisik di tengah, dan 4 titik sirip renang di bawah.</div>
+              </div>
+            </div>
+
+            <div class="bottom-hint">
+              <span>Ketuk lagi untuk kembali</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-grid">
+        <button class="btn btn-sec" onclick="prevCard()">◀ Sebelumnya</button>
+        <button class="btn btn-pri" onclick="flipCard()">🔄 Balik Kartu</button>
+        <button class="btn btn-sec" onclick="nextCard()">Berikutnya ▶</button>
+      </div>
+
+      <div class="btn-subgrid">
+        <button id="btn-mastered" class="btn btn-action" onclick="toggleMastered()">✓ Tandai Hafal</button>
+        <button class="btn btn-action" onclick="shuffleDeck()">🔀 Acak Kartu</button>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: KUIS -->
+    <div id="view-quiz" class="section-tab">
+      <div class="quiz-box">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-weight:700;">
+          <span>Tebak Cara Baca & Arti</span>
+          <span>Skor: <b id="q-score" style="color:var(--success);">0</b> / <b id="q-total">0</b></span>
+        </div>
+        <div id="quiz-kanji" class="quiz-q-kanji">魚</div>
+        <div id="quiz-reading" class="quiz-q-reading">さかな</div>
+        <div id="quiz-opts" class="quiz-opts"></div>
+        <button id="quiz-next" class="btn btn-pri" style="width:100%; margin-top:14px; display:none;" onclick="loadQuizQuestion()">Soal Berikutnya ➔</button>
+      </div>
+    </div>
+
+    <!-- TAB 3: DAFTAR 613 -->
+    <div id="view-list" class="section-tab">
+      <input type="text" id="search-input" class="search-input" placeholder="🔍 Cari Kanji, Hiragana, atau Arti..." oninput="onFilterList(this.value)">
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px; text-align:center;">No</th>
+              <th>Kanji</th>
+              <th>Cara Baca</th>
+              <th>Arti</th>
+            </tr>
+          </thead>
+          <tbody id="list-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: TIPS -->
+    <div id="view-tips" class="section-tab">
+      <div style="background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px;">
+        <h3 style="font-size:15px; color:var(--accent-red); margin-bottom:8px;">💡 Cara Belajar Kanji Sistem Gambar (Piktograf)</h3>
+        <p style="font-size:12px; line-height:1.6; color:var(--text); margin-bottom:8px;">
+          Huruf Kanji pada dasarnya berasal dari lukisan benda nyata. Mengingat bentuk gambar aslinya membuat otak Anda tidak perlu menghafal coretan garis secara mekanis, melainkan mengenali siluet bendanya secara instan.
+        </p>
+        <p style="font-size:12px; line-height:1.6; color:var(--text);">
+          Contoh: <strong>車</strong> berasal dari sketsa gerobak dua roda tampak atas[span_1](start_span)[span_1](end_span), <strong>木</strong> dari pohon berakar[span_2](start_span)[span_2](end_span), dan <strong>新</strong> dari kapak yang menebang pohon segar[span_3](start_span)[span_3](end_span).
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ============================================================
+    // 1. TEMPELKAN KODE DARI FIREBASE PROJECT SETTINGS DI BAWAH INI:
+    // ============================================================
+    // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBay7BT8J1boRMRZ6cmS_U_8fqYJzi8d2U",
+  authDomain: "kanji-jft-a2.firebaseapp.com",
+  projectId: "kanji-jft-a2",
+  storageBucket: "kanji-jft-a2.firebasestorage.app",
+  messagingSenderId: "1064727986642",
+  appId: "1:1064727986642:web:500b3bc8664a66c6d8c80b",
+  measurementId: "G-9ELJZ1YR9N"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let unsubscribeSnapshot = null;
+    let isAppInited = false;
+
+    function loginGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => {
+        alert("Gagal Login: " + err.message);
+      });
+    }
+
+    function logoutGoogle() {
+      auth.signOut().then(() => {
+        location.reload();
+      });
+    }
+
+    // Monitoring Akun Masuk & Izin Database
+    auth.onAuthStateChanged(user => {
+      const authGate = document.getElementById('auth-gate');
+      const viewLogin = document.getElementById('view-login');
+      const viewPending = document.getElementById('view-pending');
+      const appHeader = document.getElementById('app-header');
+      const appMain = document.getElementById('app-main');
+
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+
+      if (!user) {
+        // Belum Login
+        authGate.style.display = 'flex';
+        viewLogin.style.display = 'block';
+        viewPending.style.display = 'none';
+        appHeader.style.display = 'none';
+        appMain.style.display = 'none';
+        return;
+      }
+
+      // Pengguna sudah login dengan Google -> Dengarkan data izin secara Realtime
+      const userDocRef = db.collection('users').doc(user.uid);
+      unsubscribeSnapshot = userDocRef.onSnapshot(async (doc) => {
+        if (!doc.exists) {
+          // Akun baru pertama kali login: daftarkan dengan status pending
+          await userDocRef.set({
+            email: user.email,
+            nama: user.displayName || "Pengguna",
+            status: "pending",
+            waktuDaftar: new Date().toISOString()
+          });
+          
+          viewLogin.style.display = 'none';
+          viewPending.style.display = 'block';
+          document.getElementById('pending-user-display').innerText = `${user.displayName} (${user.email})`;
+        } else {
+          const userData = doc.data();
+          if (userData.status === 'approved') {
+            // Status Disetujui: Langsung buka aplikasi secara otomatis!
+            authGate.style.display = 'none';
+            appHeader.style.display = 'block';
+            appMain.style.display = 'block';
+            
+            if (!isAppInited) {
+              isAppInited = true;
+              init();
+            }
+          } else {
+            // Masih Pending
+            authGate.style.display = 'flex';
+            viewLogin.style.display = 'none';
+            viewPending.style.display = 'block';
+            document.getElementById('pending-user-display').innerText = `${user.displayName} (${user.email})`;
+            appHeader.style.display = 'none';
+            appMain.style.display = 'none';
+          }
+        }
+      }, error => {
+        console.error("Firestore Error: ", error);
+        alert("Terjadi kendala pembacaan izin database: " + error.message);
+      });
+    });
+
+    // ============================================================
+    // DATA KANJI LENGKAP JFT
+    // ============================================================
+    const DATA = [
+      [1,"魚","さかな","Ikan"],
+      [2,"肉","にく","Daging"],
+      [3,"卵","たまご","Telur"],
+      [4,"水","みず","Air"],
+      [5,"食べます","たべます","Makan"],
+      [6,"飲みます","のみます","Minum"],
+      [7,"大きい","おおきい","Besar"],
+      [8,"小さい","ちいさい","Kecil"],
+      [9,"新しい","あたらしい","Baru"],
+      [10,"古い","ふるい","Lama, usang"],
+      [11,"～時","～じ","~ jam"],
+      [12,"～分","～ふん、ぷん、ぶん","~ menit"],
+      [13,"～半","～はん","~ setengah"],
+      [14,"月曜日","げつようび","Senin"],
+      [15,"火曜日","かようび","Selasa"],
+      [16,"水曜日","すいようび","Rabo"],
+      [17,"木曜日","もくようび","Kamis"],
+      [18,"金曜日","きんようび","Jumat"],
+      [19,"土曜日","どようび","Sabtu"],
+      [20,"日曜日","にちようび","Minggu"],
+      [21,"言います","いいます","Berkata"],
+      [22,"話します","はなします","Berbicara"],
+      [23,"読みます","よみます","Membaca"],
+      [24,"見ます","みます","Melihat"],
+      [25,"聞きます","ききます","Mendengarkan"],
+      [26,"書きます","かきます","Menulis"],
+      [27,"一","いち","Satu"],
+      [28,"二","に","Dua"],
+      [29,"三","さん","Tiga"],
+      [30,"四","よん、し","Empat"],
+      [31,"五","ご","Lima"],
+      [32,"六","ろく","Enam"],
+      [33,"七","なな、しち","Tujuh"],
+      [34,"八","はち","Delapan"],
+      [35,"九","きゅう","Sembilan"],
+      [36,"十","じゅう","Sepuluh"],
+      [37,"～年","～ねん","~ tahun"],
+      [38,"～月","～がつ","~ bulan"],
+      [39,"～日","～にち","~ tanggal"],
+      [40,"東","ひがし","Timur"],
+      [41,"西","にし","Barat"],
+      [42,"南","みなみ","Selatan"],
+      [43,"北","きた","Utara"],
+      [44,"～口","～ぐち","~ pintu"],
+      [45,"東口","ひがしぐち","Pintu timur"],
+      [46,"西口","にしぐち","Pintu barat"],
+      [47,"南口","みなみぐち","Pintu selatan"],
+      [48,"北口","きたぐち","Pintu utara"],
+      [49,"買います","かいます","Membeli"],
+      [50,"買い物","かいもの","Belanja"],
+      [51,"お金","おかね","Uang"],
+      [52,"～円","～えん","~ yen"],
+      [53,"百","ひゃく","100"],
+      [55,"万","まん","10000"],
+      [56,"百円","ひゃくえん","100 yen"],
+      [57,"千円","せんえん","1000 yen"],
+      [58,"一万円","いちまんえん","10000 yen"],
+      [59,"行きます","いきます","Pergi"],
+      [60,"来ます","きます","Datang"],
+      [61,"会います","あいます","Bertemu"],
+      [62,"休みます","やすみます","Libur,istirahat"],
+      [63,"日本","にほん","Jepang"],
+      [64,"東京","とうきょう","Tokyo"],
+      [65,"私","わたし","Saya"],
+      [66,"父","ちち","Ayah"],
+      [67,"母","はは","Ibu"],
+      [68,"子供","こども","Anak"],
+      [69,"男","おとこ","Laki-laki"],
+      [70,"女","おんな","Perempuan"],
+      [71,"人","ひと","Orang"],
+      [72,"お父さん","おとうさん","Ayah (orang lain)"],
+      [73,"お母さん","おかあさん","Ibu (orang lain)"],
+      [74,"何人","なんにん","Berapa orang?"],
+      [75,"国","くに","Negara"],
+      [76,"外国","がいこく","Luar negri"],
+      [77,"～語","～ご","~ Bahasa"],
+      [78,"日本語","にほんご","Bahasa jepang"],
+      [79,"英語","えいご","Bahasa inggris"],
+      [80,"中国語","ちゅうごくご","Bahasa china"],
+      [81,"～人","～じん／～にん","~ orang"],
+      [82,"日本人","にほんじん","Orang jepang"],
+      [83,"好き","すき","Suka"],
+      [84,"本","ほん","Buku"],
+      [85,"読書","どくしょ","Bacaan"],
+      [86,"何","なに","Apa?"],
+      [87,"春","はる","Musim semi"],
+      [88,"夏","なつ","Musim panas"],
+      [89,"秋","あき","Musim gugur"],
+      [90,"冬","ふゆ","Musim dingin"],
+      [91,"今","いま","Sekarang"],
+      [92,"花","はな","Bunga"],
+      [93,"海","うみ","Laut"],
+      [94,"山","やま","Gunung"],
+      [95,"川","かわ","Sungai"],
+      [96,"今日","きょう","Hari ini"],
+      [97,"天気","てんき","Cuaca"],
+      [98,"晴れ","はれ","Cerah"],
+      [99,"雨","あめ","Hujan"],
+      [100,"雪","ゆき","Salju"],
+      [101,"雲","くも","Mendung"],
+      [102,"風","かぜ","Angin"],
+      [103,"空","そら","Langit"],
+      [104,"町","まち","Kota"],
+      [105,"店","みせ","Toko"],
+      [106,"人気","にんき","Popularitas, ketenaran"],
+      [107,"多い","おおい","Banyak"],
+      [108,"少ない","すくない","Sedikit"],
+      [109,"高い","たかい","Mahal"],
+      [110,"安い","やすい","Murah"],
+      [112,"道","みち","Jalan"],
+      [113,"通り","とおり","Jalan"],
+      [114,"右","みぎ","Kanan"],
+      [115,"左","ひだり","Kiri"],
+      [116,"一つ","ひとつ","Satu buah"],
+      [117,"二つ","ふたつ","Dua buah"],
+      [118,"赤い","あかい","Merah"],
+      [119,"青い","あおい","Biru"],
+      [120,"黒い","くろい","Hitam"],
+      [121,"白い","しろい","Putih"],
+      [122,"時間","じかん","Waktu"],
+      [123,"場所","ばしょ","Tempat"],
+      [124,"駅","えき","Stasiun"],
+      [125,"日","ひ","Matahari"],
+      [126,"出かけます","でかけます","Meninggalkan rumah"],
+      [127,"待ちます","まちます","Menunggu"],
+      [128,"止まります","とまります","Berhenti"],
+      [129,"食事","しょくじ","Makan bersama"],
+      [130,"仕事","しごと","Pekerjaan"],
+      [131,"前","まえ","Sebelum"],
+      [132,"後","あと","Setelah"],
+      [133,"朝","あさ","Pagi"],
+      [134,"昼","ひる","Siang"],
+      [135,"夜","よる","Malam"],
+      [136,"乗ります","のります","Naik"],
+      [137,"学校","がっこう","Sekolahan"],
+      [138,"小学校","しょうがっこう","SD"],
+      [139,"中学校","ちゅうがっこう","SMP"],
+      [140,"高校","こうこう","SMA"],
+      [141,"大学","だいがく","Universitas"],
+      [142,"先生","せんせい","Guru"],
+      [143,"学生"," gakusei","Murid , siswa"],
+      [144,"～年生","～ねんせい","Kelas ~"],
+      [145,"勉強","べんきょう","Pelajaran"],
+      [146,"文化","ぶんか","Kebudayaan"],
+      [147,"音楽","おんがく","Musik"],
+      [148,"旅行","りょこう","Wisata"],
+      [149,"留学","りゅうがく","Belajar di luar negri"],
+      [150,"友達","ともだち","Teman"],
+      [151,"楽しい","たのしい","Gembira"],
+      [152,"週","しゅう","Minggu"],
+      [153,"～回","～かい","~kali"],
+      [154,"食べ物","たべもの","Makanan"],
+      [155,"飲物","のみもの","Minuman"],
+      [156,"お茶","おちゃ","Teh hijau"],
+      [157,"お酒","おさけ","Sake"],
+      [158,"作ります","つくります","Membuat"],
+      [159,"持っていきます","もっていきます","Membawa pergi"],
+      [160,"お願いします","おねがいします","Tolong"],
+      [161,"料理","りょうり","Masakan"],
+      [162,"味","あじ","Rasa"],
+      [163,"色","いろ","Warna"],
+      [164,"野菜","やさい","Sayuran"],
+      [165,"少し","すこし","Sedikit"],
+      [166,"中","なか","Dalam"],
+      [167,"入っています","はいっています","Masuk"],
+      [169,"本社","ほんしゃ","Kantor pusat"],
+      [170,"支社","ししゃ","Kantor cabang"],
+      [171,"出張","しゅっちょう","Dinas luar kota"],
+      [172,"空港","くうこう","Bandara"],
+      [173,"出発","しゅっぱつ","Keberangkatan"],
+      [174,"到着","とうちゃく","Kedatangan"],
+      [175,"午前","ごぜん","AM"],
+      [176,"午後","ごご","PM"],
+      [177,"自分","じぶん","Sendiri"],
+      [178,"電話","でんわ","Telepon"],
+      [179,"電気","でんき","Listrik"],
+      [180,"電車","でんしゃ","Kereta"],
+      [181,"車","くるま","Mobil"],
+      [182,"送ります","おくります","Mengirim"],
+      [183,"使います","つかいます","Menggunakan"],
+      [184,"借ります","かります","Meminjam"],
+      [185,"体","からだ","Badan"],
+      [186,"頭","あたま","Kepala"],
+      [187,"目","め","Mata"],
+      [188,"口","くち","Mulut"],
+      [189,"耳","みみ","Telinga"],
+      [190,"手","て","Tangan"],
+      [191,"足","あし","Kaki"],
+      [192,"上","うえ","Atas"],
+      [193,"下","した","Bawah"],
+      [194,"毎～","まい～","~ setiap"],
+      [195,"毎朝","まいあさ","setiap pagi"],
+      [196,"毎日","まいにち","Setiap hari"],
+      [197,"週末","しゅうまつ","Akhir pekan"],
+      [198,"元気","げんき","Sehat"],
+      [199,"外","そと","Luar"],
+      [200,"起きます","おきます","Bangun tidur"],
+      [201,"歩きます","あるきます","Berjalan"],
+      [202,"走ります","はしります","Berlari"],
+      [203,"泳ぎます","およぎます","Berenang"],
+      [204,"お祝い","おいわい","Perayaan"],
+      [205,"誕生日","たんじょうび","Ulang tahun"],
+      [206,"結婚","けっこん","Pernikahan"],
+      [207,"絵","え","Gambar , lukisan"],
+      [208,"写真","しゃしん","Foto"],
+      [209,"時計","とけい","Jam"],
+      [210,"着ます","きます","Memakai pakaian"],
+      [211,"先～","せん～","~lalu"],
+      [212,"先週","せんしゅう","Minggu lalu"],
+      [213,"今月","こんげつ","Bulan ini"],
+      [214,"来年","らいねん","Tahun depan"],
+      [215,"今年","ことし","Tahun ini"],
+      [216,"去年","きょねん","Tahun lalu"],
+      [217,"家","いえ","Rumah"],
+      [218,"思います","おもいます","Mengira"],
+      [219,"自己紹介","じこしょうかい","Perkenalan"],
+      [220,"名前","なまえ","Nama"],
+      [221,"意味","いみ","Arti"],
+      [222,"本屋","ほんや","Toko buku"],
+      [223,"近く","ちかく","Dekat"],
+      [224,"住みます","すみます","Tinggal"],
+      [226,"～番目","～ばんめ","Urutan yang ~"],
+      [227,"兄","あに","Kakak laki2 (sendiri)"],
+      [228,"兄いさん","おにいさん","Kakak laki2 (orang lain)"],
+      [229,"姉","あね","Kakak perempuan (sendiri)"],
+      [230,"お姉さん","おねえさん","Kakak perempuan (orang lain)"],
+      [231,"弟","おとうと","Adik laki2 (sendiri)"],
+      [232,"妹","いもうと","Adik perempuan (sendiri)"],
+      [233,"家族","かぞく","Keluarga"],
+      [234,"長い","ながい","Panjang"],
+      [235,"短い","みじかい","Pendek"],
+      [236,"低い","ひくい","Rendah"],
+      [237,"上手","じょうず","Pandai"],
+      [238,"歌","うた","Lagu"],
+      [239,"歌います","うたいます","Menyanyi"],
+      [240,"客","きゃく","Tamu"],
+      [241,"注文","ちゅうもん","Pesanan"],
+      [242,"洋食","ようしょく","Makanan barat"],
+      [243,"和食","わしょく","Makanan jepang"],
+      [244,"牛肉","ぎゅうにく","Daging sapi"],
+      [245,"地方","ちほう","Daerah ,wilayah"],
+      [246,"有名","ゆうめい","Terkenal"],
+      [247,"生","なま","Mentah"],
+      [248,"冷たい","つめたい","Dingin (benda)"],
+      [249,"ご飯","ごはん","Nasi"],
+      [250,"塩","しお","Garam"],
+      [251,"全部","ぜんぶ","Semua"],
+      [252,"～方","～かた","Cara~"],
+      [253,"食べ方","たべかた","Cara makan"],
+      [254,"熱い","あつい","Panas"],
+      [255,"苦手","にがて","Susah, berat,tidak begitu suka"],
+      [256,"入れます","いれます","Memasukkan"],
+      [257,"木","き","Pohon"],
+      [258,"森","もり","Hutan"],
+      [259,"島","しま","Pulau"],
+      [260,"自然","しぜん","Alam"],
+      [261,"船","ふね","Kapal"],
+      [262,"暑い","あつい","Panas"],
+      [263,"帰ります","かえります","Pulang"],
+      [264,"予約します","よやくします","Memesan"],
+      [265,"運転します","うんてんします","Menyetir"],
+      [266,"～中","～ちゅう ／～じゅう","Sedang/dalam ~"],
+      [267,"旅行中","りょこうちゅう","Sedang wisata"],
+      [268,"観光地","かんこうち","Tempat wisata"],
+      [269,"女性","じょせい","Wanita"],
+      [270,"男性","だんせい","Pria"],
+      [271,"動物","どうぶつ","Hewan"],
+      [272,"空気","くうき","Udara"],
+      [273,"料金","りょうきん","Biaya / tarif"],
+      [274,"無料","むりょう","Gratis"],
+      [275,"明るい","あかるい","Terang"],
+      [276,"便利","べんり","Praktis"],
+      [277,"一年中","いちねんじゅう","Dalam satu tahun"],
+      [278,"受付","うけつけ","Penerima tamu"],
+      [279,"広場","ひろば","Lapangan"],
+      [280,"問題","もんだい","Soal, masalah"],
+      [281,"同じ","おなじ","Sama"],
+      [283,"始まります","はじまります","Mulai"],
+      [284,"終わります","おわります","Selesai"],
+      [285,"中止します","ちゅうしします","Mengurungkan ,membatalkan"],
+      [286,"教えます","おしえます","Memberitahu"],
+      [287,"祭り","まつり","Perayaan"],
+      [288,"日本祭り","にほんまつり","Perayaan jepang"],
+      [289,"会場","かいじょう","Ruang pertemuan"],
+      [290,"入場料","にゅうじょうりょう","Tarif masuk"],
+      [291,"参加者","さんかしゃ","Peserta"],
+      [292,"急ぎます","いそぎます","Buru-buru"],
+      [293,"決めます","きめます","Menentukan"],
+      [294,"知ります","しります","Kenal, tahu"],
+      [295,"正月","しょうがつ","Tahun baru"],
+      [296,"年末","ねんまつ","Akhir tahun"],
+      [297,"年始","ねんし","Awal tahun"],
+      [298,"親","おや","Orang tua"],
+      [299,"忙しい","いそがしい","Sibuk"],
+      [300,"特別","とくべつ","Istimewa, special"],
+      [301,"帰国","きこく","Pulang ke negara"],
+      [302,"喜びます","よろこびます","Merasa senang/gembira"],
+      [303,"幸せ","しあわせ","Bahagia"],
+      [304,"成長","せいちょう","Pertumbuhan, perkembangan"],
+      [305,"長生き","ながいき","Umur panjang, hidup lama"],
+      [306,"願い事","ねがいこと","Keinginan, kemauan, harapan"],
+      [307,"合格","ごうかく","Lulus"],
+      [308,"試験","しけん","Ujian"],
+      [309,"大人","おとな","Orang Dewasa"],
+      [310,"～式（成人式）","～しき（せいじんしき）","Upacara ~(upacara kedewasaan)"],
+      [311,"～市（さいたま市）","～し（さいたまし）","Kota~(kota saitama)"],
+      [312,"商品","しょうひん","Barang dagangan"],
+      [313,"電気製品","でんきせいひん","Peralatan listrik"],
+      [314,"電子レンジ","でんしレンジ","Oven"],
+      [315,"～機（そうじ機）","～き（そうじき）","Mesin~(mesin penghisap debu)"],
+      [316,"店員","てんいん","Penjaga toko"],
+      [317,"調子","ちょうし","Keadaan, kondisi"],
+      [318,"悪い","わるい","Jelek"],
+      [319,"動きます","うごきます","Bergerak"],
+      [320,"考えます","かんがえます","Berfikir"],
+      [321,"音","おと","Suara"],
+      [322,"出ます","でます","Keluar"],
+      [323,"機能","きのう","Fungsi"],
+      [324,"省エネ","しょうエネ","Penghematan energy"],
+      [325,"日本製","にほんせい","Produk/buatan jepang"],
+      [326,"重い","おもい","Berat"],
+      [327,"軽い","かるい","Ringan"],
+      [328,"静か","しずか","Tenang"],
+      [329,"早く","はやく","Cepat"],
+      [330,"方（こっちの方）","ほう（こっちのほう）","Arah(arah disini)"],
+      [331,"洗います","あらいます","Mencuci"],
+      [332,"満足します","まんぞくします","Puas, merasa puas"],
+      [333,"京都","きょうと","Kyoto"],
+      [334,"神社","じんじゃ","Kuil sinto"],
+      [335,"お寺","おてら","Kuil"],
+      [336,"仏教","ぶっきょう","Agama budha"],
+      [337,"歴史","れきし","Sejarah"],
+      [338,"世界","せかい","Dunia"],
+      [340,"～世紀（８世紀）","～せいき（はっせいき）","Abad~"],
+      [341,"～的","～てき","Berbau~ / ke~ an"],
+      [342,"日本的","にほんてき","Berbau jepang"],
+      [343,"歴史的","れきしてき","Bersejarah"],
+      [344,"飲食","いんしょく","Makan minum"],
+      [345,"禁止","きんし","Larangan"],
+      [346,"説明","せつめい","Penjelasan"],
+      [347,"道具","どうぐ","Peralatan"],
+      [348,"博物館","はくぶつかん","Museum"],
+      [349,"必要","ひつよう","Keperluan, kebutuhan"],
+      [350,"～階（２階）","～かい（にかい）","Lantai ~ ( lantai 2 )"],
+      [351,"油","あぶら","Minyak , oli"],
+      [352,"紙","かみ","Kertas"],
+      [353,"温度","おんど","Suhu , derajat"],
+      [354,"活動","かつどう","Kegiatan , aktivitas"],
+      [355,"会議室","かいぎしつ","Ruang rapat"],
+      [356,"寒い","さむい","Dingin ( suhu )"],
+      [357,"出します","だします","Mengeluarkan , mengirim (surat )"],
+      [358,"～度（２８度）","～ど（にじゅうはちど）","~derajat ( 28 derajat )"],
+      [359,"～点（１００点）","～てん（１００てん）","Nilai ~ ( nilai 100 )"],
+      [360,"服","ふく","Baju , pakaian"],
+      [361,"自転車","じてんしゃ","Sepeda"],
+      [362,"自動車","じどうしゃ","Mobil"],
+      [363,"売ります","うります","Menjual"],
+      [364,"貸します","かします","Meminjamkan"],
+      [365,"返します","かえします","Mengembalikan"],
+      [366,"変わります","かわります","Mengganti"],
+      [367,"～用","～よう","Urusan , keperluan ~"],
+      [368,"子供用","こどもよう","Urusan anak"],
+      [369,"人生","じんせい","Kehidupan"],
+      [370,"歌手","かしゅ","Penyanyi"],
+      [371,"選手","せんしゅ","Atlit, pemain"],
+      [372,"画家","がか","Pelukis"],
+      [373,"作家","さっか","Pengarang"],
+      [374,"入学","にゅうがく","Masuk sekolah"],
+      [375,"卒業","そつぎょう","Lulus"],
+      [376,"病気","びょうき","Sakit"],
+      [377,"若い","わかい","Muda"],
+      [378,"生まれます","うまれます","Lahir"],
+      [379,"思い出","おもいで","Kenang-kenangan, kenangan"],
+      [380,"生活","せいかつ","Kehidupan"],
+      [381,"映画","えいが","Film"],
+      [382,"夫","おっと","Suami ( sendiri )"],
+      [383,"妻","つま","Istri ( sendiri )"],
+      [384,"両親","りょうしん","Orang tua"],
+      [385,"不便","ふべん","Tidak praktis"],
+      [386,"選びます","えらびます","Memilih"],
+      [387,"寝ます","ねます","Tidur"],
+      [388,"サッカー場","サッカーじょう","Lapangan sepak bola"],
+      [389,"試合","しあい","Pertandingan"],
+      [390,"日曜日","にちようび","Minggu"],
+      [391,"強い","つよい","Kuat"],
+      [392,"弱い","よわい","Lemah"],
+      [393,"勝ちます","かちます","Menang"],
+      [394,"負けます","まけます","Kalah"],
+      [395,"～対～（２対１）","～たい～（にたいいち）","~lawan~ ( 2 lawan 1 )"],
+      [397,"公園","こうえん","Taman"],
+      [398,"病院","びょういん","Rumah sakit"],
+      [399,"交通","こうつう","Lalu lintas"],
+      [400,"通勤","つうきん","Perjalanan ke kantor"],
+      [401,"安全","あんぜん","Keselamatan"],
+      [402,"危ない","あぶない","Bahaya"],
+      [403,"遠い","とおい","Jauh"],
+      [404,"努めます","つとめます","Bekerja"],
+      [405,"～以上（２時間以上）","～いじょう（にじかんいじょう）","~ lebih ( 2 jam lebih )"],
+      [406,"～以下（６万円以下）","～いか（ろくまんえんいか）","~kurang ( kurang dari 6 man yen )"],
+      [407,"海外","かいがい","Luar negri"],
+      [408,"食生活","しょくせいかつ","Susunan makanan"],
+      [409,"健康","けんこう","Kesehatan"],
+      [410,"家庭料理","かていりょうり","Masakan rumah tangga"],
+      [411,"材料","ざいりょう","Bahan"],
+      [412,"量","りょう","Jumlah, kuantitas, banyaknya"],
+      [413,"米","こめ","Beras"],
+      [414,"～食","～しょく","Makan ~"],
+      [415,"朝食","ちょうしょく","Makan pagi"],
+      [416,"昼食","ちゅうしょく","Makan siang"],
+      [417,"夕食","ゆうしょく","Makan malam"],
+      [418,"外食","がいしょく","Makan di luar"],
+      [419,"定食","ていしょく","Makanan dengan menu tetap"],
+      [420,"住所","じゅうしょ","Alamat"],
+      [421,"訪問","ほうもん","Kunjungan"],
+      [422,"経験","けいけん","Pengalaman"],
+      [423,"親切","しんせつ","Ramah"],
+      [424,"座ります","すわります","Duduk"],
+      [425,"立ちます","たちます","Berdiri"],
+      [426,"～観（人生観）","～かん（じんせいかん）","Pandangan ~ ( pandangan hidup )"],
+      [427,"約～（約６年間）","やく～（やくろくねんかん）","Kira2, sekitar ( sekitar 6 tahun )"],
+      [428,"計画","けいかく","Rencana , program"],
+      [429,"自信","じしん","Percaya diri"],
+      [430,"方法","ほうほう","Cara"],
+      [431,"目的","もくてき","Tujuan"],
+      [432,"難しい","むずかしい","Sulit"],
+      [433,"通じます","つうじます","Mengalirkan,menguasai,berhubungan"],
+      [434,"習います","ならいます","Belajar kepada"],
+      [435,"学びます","まなびます","Belajar"],
+      [436,"～級","～きゅう","Kelas ,tingkat ~"],
+      [437,"初級","しょきゅう","Kelas dasar"],
+      [438,"中級","ちゅうきゅう","Kelas menengah"],
+      [439,"上級","じょうきゅう","Kelas atas"],
+      [440,"相手","あいて","Pasangan, lawan"],
+      [441,"気持ち","きもち","Perasaan enak"],
+      [442,"恋人","こいびと","Pacar"],
+      [443,"出会い","であい","Pertemuan"],
+      [444,"最近","さいきん","Akhir-akhir ini"],
+      [445,"最高","さいこう","Teratas, tertinggi"],
+      [446,"出席","しゅっせき","Kehadiran"],
+      [447,"招待","しょうたい","Undangan"],
+      [448,"～合う（知り合う）","～あう（しりあう）","Cocok ~ ( kenal mengenal )"],
+      [449,"社会人","しゃかいじん","Anggota masyarakat"],
+      [450,"職場","しょくば","Tempat kerja"],
+      [451,"給料","きゅうりょう","Gaji"],
+      [452,"人間関係","にんげんかんけい","Hubungan antar manusia"],
+      [454,"恋愛","れんあい","Percintaan , asmara"],
+      [455,"相談","そうだん","Musyawarah"],
+      [456,"心","こころ","Hati"],
+      [457,"心配","しんぱい","Khawatir"],
+      [458,"不安","ふあん","Kegelisahan, kekhawatiran"],
+      [459,"お客様","おきゃくさま","Tamu"],
+      [460,"手続き","てつづき","Prosedur"],
+      [461,"飛行機","ひこうき","Pesawat terbang"],
+      [462,"変更","へんこう","Perubahan"],
+      [463,"予定","よてい","Rencana"],
+      [464,"利用","りよう","Penggunaan, pemakaian"],
+      [465,"忘れ物","わすれもの","Benda yang tertinggal"],
+      [466,"助けます","たすけます","Menolong"],
+      [467,"～航空（ＪＦ航空）","～こうくう（ＪＦこうくう）","Penerbangan ~ ( penerbangan JF )"],
+      [468,"～便（１１５便）","～びん（いちいちごびん）","Penerbangan , pos ( pos 115 )"],
+      [469,"体力","たいりょく","Kekuatan"],
+      [470,"協力","きょうりょく","Kerjasama"],
+      [471,"担当","たんとう","Petugas"],
+      [472,"報告","ほうこく","Melapor"],
+      [473,"連絡","れんらく","Menghubungi"],
+      [474,"募集","ぼしゅう","Penerimaan, perekrutan"],
+      [475,"輸出","ゆしゅつ","Ekspor"],
+      [476,"輸入","ゆにゅう","Impor"],
+      [477,"会話","かいわ","Percakapan"],
+      [478,"形","かたち","Bentuk"],
+      [479,"漢字","かんじ","Kanji"],
+      [480,"答え","こたえ","Jawaban"],
+      [481,"質問","しつもん","Pertanyaan"],
+      [482,"正しい","ただしい","Benar"],
+      [483,"読解","どっかい","Bacaan"],
+      [484,"表現","ひょうげん","Pengucapan"],
+      [485,"文","ぶん","Kalimat"],
+      [486,"文型","ぶんけい","Pola kalimat"],
+      [487,"文法","ぶんぽう","Tata Bahasa"],
+      [488,"もう一度","もういちど","Sekali lagi"],
+      [489,"例","れい","Contoh"],
+      [490,"練習","れんしゅう","latihan"],
+      [491,"～枚","～まい","～lembar"],
+      [492,"今週","こんしゅう","Minggu ini"],
+      [493,"今度","こんど","Lain kali, yang akan datang"],
+      [494,"横","よこ","Sebelah"],
+      [495,"押します","おします","Menekan, mendorong"],
+      [496,"引きます","ひきます","Menarik"],
+      [497,"温泉","おんせん","Pemandian air panas"],
+      [498,"来週","らいしゅう","Minggu depan"],
+      [499,"犬","いぬ","Anjing"],
+      [500,"夕方","ゆうがた","Sore"],
+      [501,"季節","きせつ","Musim"],
+      [502,"昨日","きのう","Kemarin"],
+      [503,"明日","あした","Besok"],
+      [504,"食堂","しょくどう","Kantin"],
+      [505,"銀行","ぎんこう","Bank"],
+      [506,"受付","うけつけ","Resepsionis"],
+      [507,"門","もん","Pintu gerbang"],
+      [508,"登ります","のぼります","Mendaki"],
+      [509,"教科書","きょうかしょ","Buku panduan"],
+      [511,"参加します","さんかします","Berpartisipasi"],
+      [512,"用意します","よういします","Menyiapkan"],
+      [513,"牛肉","ぎゅうにく","Daging sapi"],
+      [514,"豚肉","ぶたにく","Daging babi"],
+      [515,"皿","さら","Piring"],
+      [516,"お湯","おゆ","Air panas"],
+      [517,"調理方法","ちょうりほうほう","Cara memasak"],
+      [518,"甘い","あまい","Manis"],
+      [519,"辛い","からい","Pedas"],
+      [520,"数字","すうじ","Angka, bilangan"],
+      [521,"机","つくえ","Meja"],
+      [522,"都合","つごう","Keadaan"],
+      [523,"用事","ようじ","Keperluan"],
+      [524,"氏名","しめい","Nama lengkap"],
+      [525,"理由","りゆう","Alasan"],
+      [526,"別に","べつに","Beda-beda"],
+      [527,"連絡先","れんらくさき","Alamat yang dapat dihubungi"],
+      [528,"吸います","すいます","Menghisap"],
+      [529,"取ります","とります","Mengambil"],
+      [530,"伝えます","つたえます","Menyampaikan"],
+      [531,"熱","ねつ","Demam"],
+      [532,"薬","くすり","Obat"],
+      [533,"医者","いしゃ","Dokter"],
+      [534,"～才","～さい","Bakat ～ ／ umur ～"],
+      [535,"眠い","ねむい","Ngantuk"],
+      [536,"記入します","きにゅうします","Mengisi di kertas"],
+      [537,"顔","かお","Wajah"],
+      [538,"泣きます","なきます","Menangis"],
+      [539,"会計","かいけい","Pembayaran"],
+      [540,"電話番号","でんわばんごう","Nomor telepon"],
+      [541,"牛乳","ぎゅうにゅう","Susu sapi"],
+      [542,"禁煙","きんえん","Larangan merokok"],
+      [543,"自由","じゆう","Bebas"],
+      [544,"切ります","きります","Memotong"],
+      [545,"焼きます","やきます","Memanggang"],
+      [546,"旅館","りょかん","Penginapan"],
+      [547,"遊びます","あそびます","Bermain"],
+      [548,"調べます","しらべます","Memeriksa"],
+      [549,"事故","じこ","Kecelakaan"],
+      [550,"故障","こしょう","Kerusakan"],
+      [551,"指定席","していせき","Tempat duduk yang ditetapkan"],
+      [552,"光ります","ひかります","Bercahaya , bersinar"],
+      [553,"お知らせ","おしらせ","Pengumuman"],
+      [554,"水道","すいどう","Ledeng"],
+      [555,"工事","こうじ","Konstruksi"],
+      [556,"場合","ばあい","Kesempatan"],
+      [557,"条件","じょうけん","Syarat-syarat, kondisi"],
+      [558,"開きます","ひらきます","Membuka"],
+      [559,"生産します","せいさんします","Memproduksi"],
+      [560,"体験","たいけん","Percobaan"],
+      [561,"国際交流","こくさいこうりゅう","Pertukaran budaya internasional"],
+      [562,"申し込みます","もうしこみます","Melamar (pekerjaan)"],
+      [563,"昨年","さくねん","Tahun lalu"],
+      [564,"毎年","まいとし","Setiap tahun"],
+      [565,"袋","ふくろ","Kantong plastik"],
+      [566,"店長","てんちょう","Manajer toko"],
+      [568,"習慣","しゅうかん","Kebiasaan"],
+      [569,"普通","ふつう","Biasa"],
+      [570,"暗い","くらい","Gelap"],
+      [571,"怒ります","おこります","Marah"],
+      [572,"入院します","にゅういんします","Masuk rumah sakit"],
+      [573,"退院します","たいいんします","Keluar rumah sakit"],
+      [574,"急に","きゅうに","Tiba-tiba"],
+      [575,"営業します","えいぎょうします","Buka"],
+      [576,"案内します","あんないします","Memandu"],
+      [577,"値段","ねだん","Harga"],
+      [578,"価格","かかく","Harga"],
+      [579,"消費税","しょうひぜい","Pajak konsumen"],
+      [580,"税別","ぜいべつ","Harga belum termasuk pajak"],
+      [581,"図書館","としょかん","Perpustakaan"],
+      [582,"開きます","あきます","Terbuka"],
+      [583,"閉まります","しまります","Tertutup"],
+      [584,"利用します","りようします","Menggunakan"],
+      [585,"窓口","まどぐち","Konter , loket"],
+      [586,"郵便局","ゆうびんきょく","Kantor pos"],
+      [587,"近所","きんじょ","Tetangga"],
+      [588,"自動","じどう","Otomatis"],
+      [589,"危険","きけん","Bahaya"],
+      [590,"～種類","～しゅるい","～macam, jenis"],
+      [591,"消します","けします","Memadamkan"],
+      [592,"捨てます","すてます","Membuang"],
+      [593,"分けます","わけます","Membagi"],
+      [594,"燃えます","もえます","Terbakar"],
+      [595,"設定します","せっていします","Mengeset,menyeting"],
+      [596,"地震","じしん","Gempa"],
+      [597,"台風","たいふう","Angin topan"],
+      [598,"声","こえ","Suara (benda hidup)"],
+      [599,"大切な","たいせつな","Penting"],
+      [600,"進みます","すすみます","Rekomendasi"],
+      [601,"授業","じゅぎょう","Pelajaran"],
+      [602,"大変な","たいへんな","Berat (perasaan)"],
+      [603,"困ります","こまります","Susah"],
+      [604,"違います","ちがいます","Salah , berbeda"],
+      [605,"慣れます","なれます","terbiasa"],
+      [606,"増えます","ふえます","Bertambah"],
+      [607,"笑います","わらいます","Tertawa"],
+      [608,"苦労します","くろうします","Bersakit-sakit ( dalam usaha)"],
+      [609,"希望","きぼう","Harapan, keinginan"],
+      [610,"特に","とくに","Terutama"],
+      [611,"建てます","たてます","Mendirikan"],
+      [612,"続けます","つづけます","Melanjutkan"],
+      [613,"役に立ちます","やくにたちます","Bermanfaat"]
+    ];
+
+    const VISUAL_DB = {
+      1: { icon: "🐟", cap: "Ini adalah bentuk ikan.", desc: "Kepala di atas, sisik di tengah, dan 4 titik sirip renang di bawah." },
+      2: { icon: "🥩", cap: "Ini adalah bentuk sepotong daging.", desc: "Kotak bergaris melambangkan serat otot dan urat daging." },
+      3: { icon: "🥚", cap: "Ini adalah bentuk dua butir telur.", desc: "Dua butir telur bulat dengan bintik kuning telur di dalamnya." },
+      4: { icon: "💧", cap: "Ini adalah bentuk aliran air.", desc: "Arus tengah deras dengan cipratan tetesan air di kedua sisi." },
+      5: { icon: "🍱", cap: "Ini adalah bentuk makanan di meja.", desc: "Wadah bekal makanan tertutup yang disajikan di atas meja." },
+      6: { icon: "🥤", cap: "Ini adalah bentuk orang minum.", desc: "Seseorang membuka mulut lebar meneguk minuman dari wadah." },
+      7: { icon: "🧍", cap: "Ini adalah bentuk orang berdiri besar.", desc: "Seseorang merentangkan kedua tangan dan kaki selebar mungkin." },
+      8: { icon: "✂️", cap: "Ini adalah bentuk benda kecil terbagi.", desc: "Garis tengah yang dipotong kecil menjadi dua belahan." },
+      9: { icon: "🪓", cap: "Ini adalah bentuk memotong kayu segar.", desc: "Kapak baru (斤) digunakan menebang pohon segar (木) di bukit (立)." },
+      10: { icon: "⚰️", cap: "Ini adalah bentuk makam tua.", desc: "Angka sepuluh (十) di atas batu nisan mulut (口) yang berusia lama." },
+      14: { icon: "🌙", cap: "Ini adalah bentuk bulan sabit.", desc: "Bulan sabit malam melambangkan hari Senin (Getsuyoubi)." },
+      15: { icon: "🔥", cap: "Ini adalah bentuk lidah api menyala.", desc: "Kobaran lidah api melambangkan hari Selasa (Kayoubi)." },
+      16: { icon: "🌊", cap: "Ini adalah bentuk aliran air.", desc: "Aliran air mengalir melambangkan hari Rabu (Suiyoubi)." },
+      17: { icon: "🌳", cap: "Ini adalah bentuk pohon berkayu.", desc: "Pohon batang dan cabang melambangkan hari Kamis (Mokuyoubi)." },
+      18: { icon: "💰", cap: "Ini adalah bentuk emas berkilau.", desc: "Tumpukan logam mulia di tambang melambangkan hari Jumat (Kinyoubi)." },
+      19: { icon: "🌱", cap: "Ini adalah bentuk tanah subur.", desc: "Gundukan tanah tanaman melambangkan hari Sabtu (Doyoubi)." },
+      20: { icon: "☀️", cap: "Ini adalah bentuk matahari bundar.", desc: "Matahari dengan titik tengah melambangkan hari Minggu (Nichiyoubi)." },
+      21: { icon: "🗣️", cap: "Ini adalah bentuk kata terucap.", desc: "Uap udara dan kata yang keluar berurutan dari rongga mulut." },
+      22: { icon: "💬", cap: "Ini adalah bentuk lidah berbicara.", desc: "Kata-kata (言) yang dituturkan oleh lidah (舌) saat berbicara." },
+      23: { icon: "📖", cap: "Ini adalah bentuk membaca buku.", desc: "Kata-kata (言) yang ditelaah dan dipahami di depan meja." },
+      24: { icon: "👁️", cap: "Ini adalah bentuk mata mengamati.", desc: "Mata besar (目) yang ditopang oleh sepasang kaki berjalan (儿)." },
+      25: { icon: "👂", cap: "Ini adalah bentuk telinga di pintu.", desc: "Telinga (耳) yang ditempelkan ke daun pintu gerbang (門) untuk menyimak." },
+      26: { icon: "✍️", cap: "Ini adalah bentuk tangan memegang kuas.", desc: "Tangan memegang kuas tegak lurus mencoret tinta di atas kertas." },
+      27: { icon: "1️⃣", cap: "Ini adalah bentuk satu ruas garis.", desc: "Satu goresan jari horizontal melambangkan angka 1." },
+      28: { icon: "2️⃣", cap: "Ini adalah bentuk dua ruas garis.", desc: "Dua goresan jari sejajar melambangkan angka 2." },
+      29: { icon: "3️⃣", cap: "Ini adalah bentuk tiga ruas garis.", desc: "Tiga goresan jari tersusun melambangkan angka 3." },
+      30: { icon: "📦", cap: "Ini adalah bentuk tirai kotak.", desc: "Jendela kotak dengan dua lipatan tirai melambangkan angka 4." },
+      36: { icon: "➕", cap: "Ini adalah bentuk silang tangan.", desc: "Dua tangan yang saling menyilang membentuk angka sepuluh (10)." },
+      40: { icon: "🌅", cap: "Ini adalah bentuk matahari terbit.", desc: "Matahari (日) menyembul di belakang pohon (木) arah Timur." },
+      41: { icon: "🌇", cap: "Ini adalah bentuk burung di sarang.", desc: "Burung kembali ke sarang saat senja di arah Barat." },
+      42: { icon: "🌴", cap: "Ini adalah bentuk tanaman di Selatan.", desc: "Pohon dan vegetasi rimbun di wilayah selatan yang hangat." },
+      43: { icon: "👥", cap: "Ini adalah bentuk orang membelakangi.", desc: "Dua orang saling membelakangi karena angin dingin dari Utara." },
+      44: { icon: "🚪", cap: "Ini adalah bentuk lubang pintu.", desc: "Kotak jalan terbuka tempat orang keluar dan masuk." },
+      51: { icon: "🪙", cap: "Ini adalah bentuk koin emas.", desc: "Gudang penyimpan bijih logam mulia dan koin uang." },
+      59: { icon: "🚶", cap: "Ini adalah bentuk persimpangan jalan.", desc: "Kaki melangkah menyeberangi persimpangan jalan menuju tempat lain." },
+      60: { icon: "🌾", cap: "Ini adalah bentuk gandum tiba.", desc: "Batang gandum yang telah dipanen dan dibawa datang ke lumbung." },
+      61: { icon: "🤝", cap: "Ini adalah bentuk orang berkumpul.", desc: "Dua orang bertemu dan bertatap muka di bawah satu atap." },
+      62: { icon: "🛌", cap: "Ini adalah bentuk orang bersandar.", desc: "Seseorang (亻) sedang santai bersandar pada pohon rindang (木)." },
+      65: { icon: "🌾", cap: "Ini adalah bentuk panen padi pribadi.", desc: "Tangan memegang tanaman padi milik diri sendiri." },
+      66: { icon: "🧔", cap: "Ini adalah bentuk tangan ayah berwibawa.", desc: "Dua tangan kepala keluarga memegang tongkat wibawa rumah tangga." },
+      67: { icon: "🤱", cap: "Ini adalah bentuk ibu menyusui.", desc: "Dada seorang ibu dengan dua titik kasih sayang merawat bayinya." },
+      68: { icon: "👶", cap: "Ini adalah bentuk anak melambaikan tangan.", desc: "Kepala bulat anak kecil dengan kedua tangan terbuka ke atas." },
+      69: { icon: "🚜", cap: "Ini adalah bentuk pria menggarap sawah.", desc: "Lahan sawah (田) yang diolah menggunakan tenaga otot kuat (力)." },
+      70: { icon: "💃", cap: "Ini adalah bentuk wanita anggun.", desc: "Siluet seorang wanita anggun yang menyilangkan kedua tangannya." },
+      71: { icon: "🚶", cap: "Ini adalah bentuk orang melangkah.", desc: "Dua goresan kaki manusia yang sedang melangkah maju." },
+      83: { icon: "👩‍👦", cap: "Ini adalah bentuk ibu mencintai anak.", desc: "Gabungan wanita (女) dan anak (子), lambang rasa suka dan sayang." },
+      84: { icon: "📖", cap: "Ini adalah bentuk pangkal akar ilmu.", desc: "Pohon (木) yang diberi garis akar dasar pengetahuan menjadi buku." },
+      92: { icon: "🌸", cap: "Ini adalah bentuk tanaman berbunga.", desc: "Tunas rumput (艹) yang mekar berubah (化) menjadi kuntum bunga." },
+      93: { icon: "🌊", cap: "Ini adalah bentuk lautan luas.", desc: "Air (氵) melimpah tempat setiap orang (毎) berlayar menangkap ikan." },
+      94: { icon: "⛰️", cap: "Ini adalah bentuk tiga puncak gunung.", desc: "Tiga tebing bebatuan menjulang tinggi membentuk jajaran gunung." },
+      95: { icon: "🏞️", cap: "Ini adalah bentuk tiga aliran sungai.", desc: "Tiga garis vertikal air mengalir di antara daratan membentuk sungai." },
+      98: { icon: "🌤️", cap: "Ini adalah bentuk cuaca cerah.", desc: "Matahari (日) bersinar terang benderang menyinari birunya langit." },
+      99: { icon: "🌧️", cap: "Ini adalah bentuk tetesan air hujan.", desc: "Awan mendung menjatuhkan 4 butir tetesan air hujan ke tanah." },
+      100: { icon: "❄️", cap: "Ini adalah bentuk menyapu salju.", desc: "Hujan dingin membeku (雨) yang disapu menggunakan sapu tangan (ヨ)." },
+      124: { icon: "🚉", cap: "Ini adalah bentuk pos perhentian kuda.", desc: "Kuda (馬) pengangkut barang yang berhenti di pos stasiun (尺)." },
+      128: { icon: "🛑", cap: "Ini adalah bentuk telapak kaki berhenti.", desc: "Telapak kaki menjejak tanah tegak menandakan langkah berhenti." },
+      130: { icon: "💼", cap: "Ini adalah bentuk tangan memegang alat kerja.", desc: "Seseorang yang sedang mengabdi menjalankan tugas profesinya." },
+      137: { icon: "🏫", cap: "Ini adalah bentuk gedung sekolah.", desc: "Anak menuntut ilmu di bawah naungan atap gedung sekolah (校)." },
+      178: { icon: "☎️", cap: "Ini adalah bentuk bicara jarak jauh.", desc: "Kilatan listrik petir (電) yang dipadukan dengan percakapan (話)." },
+      179: { icon: "⚡", cap: "Ini adalah bentuk kilatan petir.", desc: "Awan hujan badai yang memancarkan kilatan aliran listrik." },
+      180: { icon: "🚃", cap: "Ini adalah bentuk kereta listrik.", desc: "Kendaraan roda gerobak (車) yang digerakkan oleh tenaga listrik (電)." },
+      181: { icon: "🚗", cap: "Ini adalah bentuk mobil / gerobak roda.", desc: "Kereta roda dua tampak atas dengan poros as roda di bagian tengah." },
+      187: { icon: "👁️", cap: "Ini adalah bentuk bola mata terbuka.", desc: "Bentuk pupil dan kelopak mata yang mengamati sekeliling." },
+      188: { icon: "👄", cap: "Ini adalah bentuk rongga mulut terbuka.", desc: "Bibir persegi rongga mulut manusia yang terbuka saat berbicara." },
+      189: { icon: "👂", cap: "Ini adalah bentuk daun telinga.", desc: "Lekukan daun telinga manusia lengkap dengan saluran pendengaran." },
+      190: { icon: "✋", cap: "Ini adalah bentuk telapak tangan.", desc: "Garis lima jemari tangan yang siap menggenggam benda." },
+      191: { icon: "🦵", cap: "Ini adalah bentuk kaki melangkah.", desc: "Lutut bersambung dengan telapak kaki yang menjejak jalan." },
+      217: { icon: "🏠", cap: "Ini adalah bentuk rumah beratap.", desc: "Atap bangunan kokoh yang melindungi anggota keluarga di dalamnya." },
+      257: { icon: "🌲", cap: "Ini adalah bentuk pohon berakar.", desc: "Batang tegak kayu yang memiliki dahan cabang dan akar ke tanah." },
+      258: { icon: "🌳", cap: "Ini adalah bentuk hutan lebat.", desc: "Tiga pohon rimbun berkumpul membentuk area hutan belantara." },
+      345: { icon: "🚫", cap: "Ini adalah bentuk tanda larangan.", desc: "Tanda peringatan tegas agar tidak memasuki hutan atau wilayah suci." },
+      361: { icon: "🚲", cap: "Ini adalah bentuk sepeda kayuh.", desc: "Kendaraan roda (車) yang berputar (転) oleh tenaga sendiri (自)." },
+      362: { icon: "🚙", cap: "Ini adalah bentuk mobil otomatis.", desc: "Kendaraan roda (車) yang bergerak (動) sendiri (自) tanpa ditarik hewan." },
+      461: { icon: "✈️", cap: "Ini adalah bentuk pesawat terbang.", desc: "Mesin (機) berdaya jelajah tinggi yang melayang terbang (飛行) di angkasa." },
+      507: { icon: "⛩️", cap: "Ini adalah bentuk daun pintu gerbang.", desc: "Dua tiang penyangga kokoh dengan dua daun pintu gerbang utama." },
+      542: { icon: "🚭", cap: "Ini adalah bentuk larangan merokok.", desc: "Tanda larangan mutlak (禁) menyalakan asap tembakau rokok (煙)." }
+    };
+
+    function extractPureKanji(str) {
+      let pure = str.replace(/[\u3040-\u309F\u30A0-\u30FF～\s\(\)（）]/g, '');
+      return pure || str;
+    }
+
+    function getVisualData(id, kanji, arti) {
+      if (VISUAL_DB[id]) return VISUAL_DB[id];
+
+      let icon = "💡";
+      if (kanji.includes("食") || kanji.includes("飲") || kanji.includes("飯")) icon = "🍽️";
+      else if (kanji.includes("語") || kanji.includes("話") || kanji.includes("言")) icon = "💬";
+      else if (kanji.includes("車") || kanji.includes("道") || kanji.includes("駅")) icon = "🚗";
+      else if (kanji.includes("病") || kanji.includes("薬") || kanji.includes("医")) icon = "🏥";
+      else if (kanji.includes("雨") || kanji.includes("天") || kanji.includes("気")) icon = "⛅";
+      else if (kanji.includes("門") || kanji.includes("屋") || kanji.includes("店")) icon = "🏢";
+      else if (kanji.includes("見") || kanji.includes("聞") || kanji.includes("読")) icon = "👀";
+      else if (kanji.includes("買") || kanji.includes("金") || kanji.includes("円")) icon = "💳";
+
+      let cleanArti = arti.replace(/~|\(.*?\)/g, "").trim();
+      return {
+        icon: icon,
+        cap: `Ini adalah bentuk terkait ${cleanArti}.`,
+        desc: `Komposisi karakter melambangkan makna ${cleanArti} dalam situasi nyata.`
+      };
+    }
+
+    // STATE
+    let cardDeck = [...DATA];
+    let currentIndex = 0;
+    let isFlipped = false;
+    let mastered = new Set(JSON.parse(localStorage.getItem('jft_m') || '[]'));
+    let bookmarked = new Set(JSON.parse(localStorage.getItem('jft_b') || '[]'));
+
+    let qScore = 0;
+    let qTotal = 0;
+    let currentQ = null;
+
+    function init() {
+      updateCounters();
+      renderCard();
+      renderList(DATA);
+    }
+
+    function showTab(t) {
+      document.querySelectorAll('.section-tab').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById('view-' + t).classList.add('active');
+      document.getElementById('tab-' + t).classList.add('active');
+      if (t === 'quiz') loadQuizQuestion();
+    }
+
+    function filterRange(v) {
+      if (v === 'all') cardDeck = [...DATA];
+      else if (v === 'bookmarked') cardDeck = DATA.filter(d => bookmarked.has(d[0]));
+      else if (v === 'unmastered') cardDeck = DATA.filter(d => !mastered.has(d[0]));
+      else {
+        const [s, e] = v.split('-').map(Number);
+        cardDeck = DATA.filter(d => d[0] >= s && d[0] <= e);
+      }
+      if (!cardDeck.length) {
+        alert("Tidak ada kartu dalam filter ini!");
+        document.getElementById('range-sel').value = 'all';
+        cardDeck = [...DATA];
+      }
+      currentIndex = 0;
+      resetFlip();
+      renderCard();
+    }
+
+    function shuffleDeck() {
+      for (let i = cardDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cardDeck[i], cardDeck[j]] = [cardDeck[j], cardDeck[i]];
+      }
+      currentIndex = 0;
+      resetFlip();
+      renderCard();
+    }
+
+    function renderCard() {
+      if (!cardDeck.length) return;
+      const item = cardDeck[currentIndex];
+      const id = item[0];
+      const kanji = item[1];
+      const hira = item[2];
+      const arti = item[3];
+
+      document.getElementById('card-no-f').innerText = `No. ${id}`;
+      document.getElementById('card-no-b').innerText = `No. ${id}`;
+      document.getElementById('card-kanji-f').innerText = kanji;
+      document.getElementById('card-hira').innerText = hira;
+      document.getElementById('card-arti').innerText = arti;
+
+      const v = getVisualData(id, kanji, arti);
+      const pureK = extractPureKanji(kanji);
+      const sketchKanjiEl = document.getElementById('sketch-kanji');
+
+      document.getElementById('sketch-icon').innerText = v.icon;
+      sketchKanjiEl.innerText = pureK;
+      
+      if (pureK.length > 2) {
+        sketchKanjiEl.style.fontSize = "20px";
+      } else if (pureK.length === 2) {
+        sketchKanjiEl.style.fontSize = "24px";
+      } else {
+        sketchKanjiEl.style.fontSize = "30px";
+      }
+
+      document.getElementById('sketch-caption').innerText = v.cap;
+      document.getElementById('sketch-desc').innerText = v.desc;
+
+      const isFav = bookmarked.has(id);
+      const star = document.getElementById('star-btn');
+      star.innerText = isFav ? '★' : '☆';
+      star.classList.toggle('active', isFav);
+
+      const isM = mastered.has(id);
+      const btnM = document.getElementById('btn-mastered');
+      btnM.innerText = isM ? '✓ Dikuasai' : 'Tandai Hafal';
+      btnM.classList.toggle('mastered', isM);
+
+      const pct = Math.round(((currentIndex + 1) / cardDeck.length) * 100);
+      document.getElementById('prog-num').innerText = `${currentIndex + 1} / ${cardDeck.length}`;
+      document.getElementById('prog-pct').innerText = `${pct}%`;
+      document.getElementById('prog-bar').style.width = `${pct}%`;
+    }
+
+    function flipCard() {
+      isFlipped = !isFlipped;
+      document.getElementById('card-inner').classList.toggle('is-flipped', isFlipped);
+    }
+
+    function resetFlip() {
+      isFlipped = false;
+      document.getElementById('card-inner').classList.remove('is-flipped');
+    }
+
+    function nextCard() {
+      resetFlip();
+      setTimeout(() => {
+        currentIndex = (currentIndex + 1) % cardDeck.length;
+        renderCard();
+      }, 90);
+    }
+
+    function prevCard() {
+      resetFlip();
+      setTimeout(() => {
+        currentIndex = (currentIndex - 1 + cardDeck.length) % cardDeck.length;
+        renderCard();
+      }, 90);
+    }
+
+    function toggleMastered() {
+      const id = cardDeck[currentIndex][0];
+      if (mastered.has(id)) mastered.delete(id);
+      else mastered.add(id);
+      localStorage.setItem('jft_m', JSON.stringify([...mastered]));
+      updateCounters();
+      renderCard();
+    }
+
+    function toggleFav(e) {
+      if (e) e.stopPropagation();
+      const id = cardDeck[currentIndex][0];
+      if (bookmarked.has(id)) bookmarked.delete(id);
+      else bookmarked.add(id);
+      localStorage.setItem('jft_b', JSON.stringify([...bookmarked]));
+      updateCounters();
+      renderCard();
+    }
+
+    function updateCounters() {
+      document.getElementById('stat-m').innerText = mastered.size;
+      document.getElementById('stat-b').innerText = bookmarked.size;
+      document.getElementById('stat-t').innerText = DATA.length;
+    }
+
+    function playAudio(e) {
+      if (e) e.stopPropagation();
+      const item = cardDeck[currentIndex];
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(item[1]);
+        utter.lang = 'ja-JP';
+        utter.rate = 0.85;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function loadQuizQuestion() {
+      document.getElementById('quiz-next').style.display = 'none';
+      currentQ = DATA[Math.floor(Math.random() * DATA.length)];
+      
+      document.getElementById('quiz-kanji').innerText = currentQ[1];
+      document.getElementById('quiz-reading').innerText = currentQ[2];
+
+      const opts = [currentQ];
+      while (opts.length < 4) {
+        const rand = DATA[Math.floor(Math.random() * DATA.length)];
+        if (!opts.some(o => o[0] === rand[0])) opts.push(rand);
+      }
+      opts.sort(() => Math.random() - 0.5);
+
+      const cont = document.getElementById('quiz-opts');
+      cont.innerHTML = '';
+      opts.forEach(o => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-btn';
+        btn.innerHTML = `<span>${o[3]}</span> <span style="color:var(--muted); font-size:11px;">${o[2]}</span>`;
+        btn.onclick = () => {
+          qTotal++;
+          const isRight = o[0] === currentQ[0];
+          if (isRight) {
+            qScore++;
+            btn.classList.add('correct');
+          } else {
+            btn.classList.add('wrong');
+            document.querySelectorAll('.quiz-btn').forEach(b => {
+              if (b.innerText.includes(currentQ[3])) b.classList.add('correct');
+            });
+          }
+          document.querySelectorAll('.quiz-btn').forEach(b => b.disabled = true);
+          document.getElementById('q-score').innerText = qScore;
+          document.getElementById('q-total').innerText = qTotal;
+          document.getElementById('quiz-next').style.display = 'block';
+        };
+        cont.appendChild(btn);
+      });
+    }
+
+    function renderList(list) {
+      const tbody = document.getElementById('list-tbody');
+      tbody.innerHTML = '';
+      list.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align:center; color:var(--muted); font-weight:700;">${d[0]}</td>
+          <td style="font-weight:800; font-size:15px;">${d[1]}</td>
+          <td style="color:var(--primary); font-weight:700;">${d[2]}</td>
+          <td style="color:#334155; font-weight:600;">${d[3]}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function onFilterList(val) {
+      const q = val.toLowerCase().trim();
+      if (!q) {
+        renderList(DATA);
+        return;
+      }
+      const filtered = DATA.filter(d => 
+        d[0].toString().includes(q) ||
+        d[1].toLowerCase().includes(q) ||
+        d[2].toLowerCase().includes(q) ||
+        d[3].toLowerCase().includes(q)
+      );
+      renderList(filtered);
+    }
+  </script>
+</body>
+</html>

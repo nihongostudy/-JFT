@@ -683,64 +683,74 @@
       });
     }
 
-    auth.onAuthStateChanged(user => {
-      const authGate = document.getElementById('auth-gate');
-      const viewLogin = document.getElementById('view-login');
-      const viewPending = document.getElementById('view-pending');
-      const appHeader = document.getElementById('app-header');
-      const appMain = document.getElementById('app-main');
+Auth.onAuthStateChanged(async user => {
+  const authGate = document.getElementById('auth-gate');
+  const viewLogin = document.getElementById('view-login');
+  const viewPending = document.getElementById('view-pending');
+  const appHeader = document.getElementById('app-header');
+  const appMain = document.getElementById('app-main');
 
-      if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
-        unsubscribeSnapshot = null;
-      }
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+    unsubscribeSnapshot = null;
+  }
 
-      if (!user) {
+  if (!user) {
+    authGate.style.display = 'flex';
+    viewLogin.style.display = 'block';
+    viewPending.style.display = 'none';
+    appHeader.style.display = 'none';
+    appMain.style.display = 'none';
+    return;
+  }
+
+  const userDocRef = db.collection('users').doc(user.uid);
+
+  try {
+    // 1. Cek keberadaan dokumen secara aman sebelum pasang listener
+    const docSnap = await userDocRef.get();
+    
+    if (!docSnap.exists) {
+      await userDocRef.set({
+        email: user.email,
+        nama: user.displayName || "Pengguna",
+        status: "pending",
+        waktuDaftar: new Date().toISOString()
+      });
+    }
+
+    // 2. Pasang real-time listener khusus untuk memantau perubahan status (misal di-approve admin)
+    unsubscribeSnapshot = userDocRef.onSnapshot((doc) => {
+      const userData = doc.data();
+      const userName = userData?.nama || user.displayName || "Pengguna";
+      const userEmail = userData?.email || user.email;
+
+      if (userData && userData.status === 'approved') {
+        authGate.style.display = 'none';
+        appHeader.style.display = 'block';
+        appMain.style.display = 'block';
+        
+        if (!isAppInited) {
+          isAppInited = true;
+          init();
+        }
+      } else {
         authGate.style.display = 'flex';
-        viewLogin.style.display = 'block';
-        viewPending.style.display = 'none';
+        viewLogin.style.display = 'none';
+        viewPending.style.display = 'block';
+        document.getElementById('pending-user-display').innerText = `${userName} (${userEmail})`;
         appHeader.style.display = 'none';
         appMain.style.display = 'none';
-        return;
       }
-
-      const userDocRef = db.collection('users').doc(user.uid);
-      unsubscribeSnapshot = userDocRef.onSnapshot(async (doc) => {
-        if (!doc.exists) {
-          await userDocRef.set({
-            email: user.email,
-            nama: user.displayName || "Pengguna",
-            status: "pending",
-            waktuDaftar: new Date().toISOString()
-          });
-          
-          viewLogin.style.display = 'none';
-          viewPending.style.display = 'block';
-          document.getElementById('pending-user-display').innerText = `${user.displayName} (${user.email})`;
-        } else {
-          const userData = doc.data();
-          if (userData.status === 'approved') {
-            authGate.style.display = 'none';
-            appHeader.style.display = 'block';
-            appMain.style.display = 'block';
-            
-            if (!isAppInited) {
-              isAppInited = true;
-              init();
-            }
-          } else {
-            authGate.style.display = 'flex';
-            viewLogin.style.display = 'none';
-            viewPending.style.display = 'block';
-            document.getElementById('pending-user-display').innerText = `${user.displayName} (${user.email})`;
-            appHeader.style.display = 'none';
-            appMain.style.display = 'none';
-          }
-        }
-      }, error => {
-        alert("Kendala database: " + error.message);
-      });
+    }, error => {
+      alert("Kendala database: " + error.message);
     });
+
+  } catch (error) {
+    alert("Gagal memuat data pengguna: " + error.message);
+  }
+});
+
 
     const DATA = [
       [1,"魚","さかな","Ikan"],

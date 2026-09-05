@@ -683,47 +683,83 @@
       });
     }
 
-      // 2. Pasang real-time listener khusus untuk memantau perubahan status
-      unsubscribeSnapshot = userDocRef.onSnapshot((doc) => {
-        const userData = doc.data();
-        const userName = userData?.nama || user.displayName || "Pengguna";
-        const userEmail = userData?.email || user.email;
+Auth.onAuthStateChanged(async user => {
+  const authGate = document.getElementById('auth-gate');
+  const viewLogin = document.getElementById('view-login');
+  const viewPending = document.getElementById('view-pending');
+  const appHeader = document.getElementById('app-header');
+  const appMain = document.getElementById('app-main');
 
-        // Izinkan jika statusnya 'approved' ATAU jika akun lama belum memiliki field status
-        if (userData && (userData.status === 'approved' || !userData.status)) {
-          authGate.style.display = 'none';
-          viewLogin.style.display = 'none';
-          viewPending.style.display = 'none';
-          
-          appHeader.style.display = 'block';
-          appMain.style.display = 'block';
-          
-          // Opsional: Otomatis tambahkan status 'approved' ke akun lama di database
-          if (!userData.status) {
-            userDocRef.update({ status: 'approved' }).catch(() => {});
-          }
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+    unsubscribeSnapshot = null;
+  }
 
-          if (!isAppInited) {
-            isAppInited = true;
-            try {
-              init();
-            } catch (err) {
-              console.error("Error saat inisialisasi init():", err);
-              alert("Gagal memuat sistem aplikasi: " + err.message);
-            }
-          }
-        } else {
-          // Hanya tampilkan layar pending jika statusnya benar-benar 'pending' atau selain approved
-          authGate.style.display = 'flex';
-          viewLogin.style.display = 'none';
-          viewPending.style.display = 'block';
-          document.getElementById('pending-user-display').innerText = `${userName} (${userEmail})`;
-          appHeader.style.display = 'none';
-          appMain.style.display = 'none';
-        }
-      }, error => {
-        alert("Kendala database: " + error.message);
+  if (!user) {
+    authGate.style.display = 'flex';
+    viewLogin.style.display = 'block';
+    viewPending.style.display = 'none';
+    appHeader.style.display = 'none';
+    appMain.style.display = 'none';
+    return;
+  }
+
+  const userDocRef = db.collection('users').doc(user.uid);
+
+  try {
+    const docSnap = await userDocRef.get();
+    
+    if (!docSnap.exists) {
+      await userDocRef.set({
+        email: user.email,
+        nama: user.displayName || "Pengguna",
+        status: "pending",
+        waktuDaftar: new Date().toISOString()
       });
+    }
+
+    unsubscribeSnapshot = userDocRef.onSnapshot((doc) => {
+      const userData = doc.data();
+      const userName = userData?.nama || user.displayName || "Pengguna";
+      const userEmail = userData?.email || user.email;
+
+      if (userData && (userData.status === 'approved' || !userData.status)) {
+        authGate.style.display = 'none';
+        viewLogin.style.display = 'none';
+        viewPending.style.display = 'none';
+        
+        appHeader.style.display = 'block';
+        appMain.style.display = 'block';
+        
+        if (!userData.status) {
+          userDocRef.update({ status: 'approved' }).catch(() => {});
+        }
+
+        if (!isAppInited) {
+          isAppInited = true;
+          try {
+            init();
+          } catch (err) {
+            console.error("Error saat inisialisasi init():", err);
+            alert("Gagal memuat sistem aplikasi: " + err.message);
+          }
+        }
+      } else {
+        authGate.style.display = 'flex';
+        viewLogin.style.display = 'none';
+        viewPending.style.display = 'block';
+        document.getElementById('pending-user-display').innerText = `${userName} (${userEmail})`;
+        appHeader.style.display = 'none';
+        appMain.style.display = 'none';
+      }
+    }, error => {
+      alert("Kendala database: " + error.message);
+    });
+
+  } catch (error) {
+    alert("Gagal memuat data pengguna: " + error.message);
+  }
+});
 
 
     // 2. Pasang real-time listener khusus untuk memantau perubahan status (misal di-approve admin)

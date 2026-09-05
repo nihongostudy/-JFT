@@ -674,7 +674,7 @@
       const btn = document.getElementById('btn-login');
       if (btn) btn.innerText = "Mengalihkan...";
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider);
+      auth.signInWithRedirect(provider);
     }
 
     function logoutGoogle() {
